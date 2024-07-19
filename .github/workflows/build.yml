@@ -25,7 +25,7 @@ jobs:
         run: poetry install --no-interaction --no-root --with dev
 
       - name: Code Quality
-        run: poetry run ruff src/
+        run: poetry run ruff check pe_analyzer/
 
       - name: Unit Tests
         run: |
