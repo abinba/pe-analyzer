@@ -1,3 +1,4 @@
+from pyspark import Row
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from pe_analyzer.db.models import FileMetadata
@@ -10,11 +11,11 @@ class Database:
 
     def get_processed_files(self):
         with self.SessionLocal() as session:
-            return [row.path for row in session.execute(select(FileMetadata.path)).scalars()]
+            return [row.path for row in session.execute(select(FileMetadata)).scalars()]
 
-    def save_metadata(self, metadata_list):
+    def save_metadata(self, metadata_list: list[Row]):
         with self.SessionLocal() as session:
             for metadata in metadata_list:
-                file_metadata = FileMetadata(**metadata)
+                file_metadata = FileMetadata(**metadata.asDict())
                 session.merge(file_metadata)
             session.commit()

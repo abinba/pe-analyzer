@@ -1,7 +1,6 @@
-version: '3'
 services:
   spark-master:
-    image: bitnami/spark:3.5
+    build: ./spark/
     environment:
       - SPARK_MODE=master
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
@@ -12,12 +11,12 @@ services:
       - '8080:8080'
       - '7077:7077'
   spark-worker:
-    image: bitnami/spark:3.5
+    build: ./spark/
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_MEMORY=1G
-      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_CORES=8
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
@@ -45,5 +44,5 @@ services:
 #      - postgres
 #    command: pe_analyzer 1000  # Process 1000 files (500 clean, 500 malware)
 
-volumes:
-  postgres-data:
+#volumes:
+#  postgres-data:
