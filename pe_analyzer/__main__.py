@@ -6,7 +6,7 @@ from pyspark.sql import SparkSession
 from pe_analyzer.metadata_processor import MetadataProcessor
 from pe_analyzer.settings import settings
 
-logging.basicConfig(level=settings.logging_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(level=settings.logging_level, format=settings.logging_format)
 logger = logging.getLogger(__name__)
 
 hostname = socket.gethostname()
@@ -21,7 +21,7 @@ def main():
     spark = (
         SparkSession.builder.appName("PE File Analyzer")
         # .master("local[*]")
-        .master("spark://localhost:7077")
+        # .master("spark://localhost:7077")
         .getOrCreate()
     )
 

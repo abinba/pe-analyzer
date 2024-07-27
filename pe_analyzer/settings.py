@@ -20,6 +20,22 @@ class DatabaseSettings(BaseSettings):
     auto_flush: bool = False
     expire_on_commit: bool = False
 
+    def get_pyspark_driver(self):
+        return {
+            "postgresql": "org.postgresql.Driver",
+            # Add more protocols here
+        }[self.db_protocol]
+
+    def get_pyspark_properties(self):
+        return {
+            "user": self.db_user,
+            "password": self.db_password,
+            "driver": self.get_pyspark_driver(),
+        }
+
+    def get_pyspark_db_url(self):
+        return f"jdbc:{self.db_protocol}://{self.db_host}:{self.db_port}/{self.db_name}"
+
     class Config:
         extra = "allow"
 
@@ -30,6 +46,7 @@ class AppSettings(BaseSettings):
     base_dir: DirectoryPath = os.path.dirname(os.path.abspath(__file__))
 
     logging_level: str = "INFO"
+    logging_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
     database: DatabaseSettings = DatabaseSettings(_env_file="db.env", _env_file_encoding="utf-8")
 

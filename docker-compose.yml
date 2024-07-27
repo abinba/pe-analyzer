@@ -23,14 +23,16 @@ services:
       - SPARK_SSL_ENABLED=no
     depends_on:
       - spark-master
-#  postgres:
-#    image: postgres:16
-#    environment:
-#      - POSTGRES_DB=metadata_db
-#      - POSTGRES_USER=user
-#      - POSTGRES_PASSWORD=password
-#    volumes:
-#      - postgres-data:/var/lib/postgresql/data
+  postgres:
+    image: postgres:16
+    environment:
+      - POSTGRES_DB=metadata_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
 #  app:
 #    build: .
 #    environment:
@@ -44,5 +46,5 @@ services:
 #      - postgres
 #    command: pe_analyzer 1000  # Process 1000 files (500 clean, 500 malware)
 
-#volumes:
-#  postgres-data:
+volumes:
+  postgres-data:
