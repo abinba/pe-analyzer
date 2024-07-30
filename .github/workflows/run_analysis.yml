@@ -19,8 +19,16 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
 
+      - name: Get number of CPU cores
+        id: get-cores
+        run: echo "::set-output name=cores::$(nproc)"
+
       - name: Build and start Docker Compose in the background
-        run: docker-compose up --build -d
+        env:
+          SPARK_WORKER_CORES: ${{ steps.get-cores.outputs.cores }}
+        run: |
+          sed -i "s/16/${SPARK_WORKER_CORES}/" docker-compose.yml
+          docker-compose up --build -d
 
       - name: Stream logs of app service
         run: |
