@@ -20,12 +20,12 @@ jobs:
         uses: docker/setup-qemu-action@v1
 
       - name: Get number of CPU cores
-        id: get-cores
-        run: echo "::set-output name=cores::$(nproc)"
+        run: |
+          echo "cores=$(nproc)" >> $GITHUB_ENV
 
       - name: Build and start Docker Compose in the background
         env:
-          SPARK_WORKER_CORES: ${{ steps.get-cores.outputs.cores }}
+          SPARK_WORKER_CORES: ${{ env.cores }}
         run: |
           sed -i "s/16/${SPARK_WORKER_CORES}/" docker-compose.yml
           docker-compose up --build -d
