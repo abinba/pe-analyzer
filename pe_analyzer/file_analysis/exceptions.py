@@ -1,0 +1,2 @@
+class PEFileNotSetException(Exception):
+    pass

@@ -13,10 +13,6 @@ class DatabaseSettings(BaseSettings):
     db_password: str
 
     isolation_level: str = "READ COMMITTED"
-    pool_size: int = 30
-    pool_pre_ping: bool = False
-    pool_recycle: int = 600
-    max_overflow: int = 10
     auto_flush: bool = False
     expire_on_commit: bool = False
 

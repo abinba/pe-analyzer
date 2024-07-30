@@ -6,11 +6,12 @@ from pyspark import Row
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf, struct
 
-from pe_analyzer.file_analyzer import analyze_pe_file
-from pe_analyzer.file_storage import FileObjectStorage
-from pe_analyzer.schema import FileMetadataContainer
-from pe_analyzer.db.db import DatabaseConnector
-from pe_analyzer.task_provider import TaskProvider
+from pe_analyzer.core.file_analyzer import analyze_pe_file
+from pe_analyzer.file_analysis.base import PEHandler
+from pe_analyzer.file_storage.base import FileObjectStorage
+from pe_analyzer.core.schema import FileMetadataContainer
+from pe_analyzer.db.connector import DatabaseConnector
+from pe_analyzer.task_provider.base import TaskProvider
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +19,9 @@ logger = logging.getLogger(__name__)
 def process(
     spark: SparkSession,
     task_provider: TaskProvider,
-    file_storage_handler: FileObjectStorage,
     database: DatabaseConnector,
+    file_storage_handler: FileObjectStorage,
+    pe_file_handler: PEHandler,
 ):
     process_start = time.time()
     logger.info("Gathering file paths from task provider...")
@@ -37,7 +39,11 @@ def process(
         """
         Download, analyze and return metadata for a single file.
         """
-        return analyze_pe_file(path=row.path, file_storage_handler=file_storage_handler)
+        return analyze_pe_file(
+            path=row.path,
+            file_storage_handler=file_storage_handler,
+            pe_file_handler=pe_file_handler,
+        )
 
     analyze_udf = udf(analyze_file_udf, schema)
     df = spark.createDataFrame([(f,) for f in file_paths], ["path"])

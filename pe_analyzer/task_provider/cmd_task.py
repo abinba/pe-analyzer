@@ -1,19 +1,17 @@
-from abc import ABC, abstractmethod
 import logging
 
-from pe_analyzer.file_storage import FileObjectStorage
-from pe_analyzer.db.db import DatabaseConnector
+from pe_analyzer.db.connector import DatabaseConnector
+from pe_analyzer.file_storage.base import FileObjectStorage
+from pe_analyzer.task_provider.base import TaskProvider
 
 logger = logging.getLogger(__name__)
 
 
-class TaskProvider(ABC):
-    @abstractmethod
-    def get_file_paths(self) -> list[str]:
-        raise NotImplementedError
-
-
 class CommandLineTaskProvider(TaskProvider):
+    """
+    Provider that takes integer N that represents number of files to process from command line arguments.
+    """
+
     def __init__(
         self,
         n: int,

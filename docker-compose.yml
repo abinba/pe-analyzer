@@ -1,5 +1,5 @@
 services:
-  spark-master:
+  spark:
     build:
       context: .
       dockerfile: spark.Dockerfile
@@ -18,19 +18,18 @@ services:
       dockerfile: spark.Dockerfile
     environment:
       - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_MASTER_URL=spark://spark:7077
       - SPARK_WORKER_MEMORY=1G
-      - SPARK_WORKER_CORES=8
+      - SPARK_WORKER_CORES=16
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
     depends_on:
-      - spark-master
+      - spark
   postgres:
     image: postgres:16
     environment:
-      - SPARK_URL=spark://spark-master:7077
       - POSTGRES_DB=metadata_db
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -38,18 +37,22 @@ services:
       - '5433:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
-#  app:
-#    build: .
-#    environment:
-#      - SPARK_MASTER=spark://spark-master:7077
-#      - DB_HOST=postgres
-#      - DB_USER=user
-#      - DB_PASSWORD=password
-#    depends_on:
-#      - spark-master
-#      - spark-worker
-#      - postgres
-#    command: pe_analyzer 1000  # Process 1000 files (500 clean, 500 malware)
+  app:
+    build: .
+    environment:
+      - SPARK_URL=spark://spark:7077
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+    depends_on:
+      - spark
+      - spark-worker
+      - postgres
 
 volumes:
   postgres-data:
+
+networks:
+    default:
+        name: pe_analyzer
+        driver: bridge

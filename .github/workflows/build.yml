@@ -29,4 +29,4 @@ jobs:
 
       - name: Unit Tests
         run: |
-          poetry run pytest -vv --cov-report term-missing --cov-branch --cov=src
+          poetry run pytest -vv --cov-report term-missing --cov-branch --cov=pe_analyzer ./tests

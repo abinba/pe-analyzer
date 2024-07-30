@@ -1,15 +1,7 @@
-from abc import ABC
-
 import boto3
 import botocore.exceptions
 
-
-class FileObjectStorage(ABC):
-    def list_files(self, prefix: str) -> list[str]:
-        raise NotImplementedError
-
-    def download_file(self, key: str) -> bytes:
-        raise NotImplementedError
+from pe_analyzer.file_storage.base import FileObjectStorage
 
 
 class S3ObjectStorage(FileObjectStorage):
@@ -43,9 +35,12 @@ class S3ObjectStorage(FileObjectStorage):
         return s3_client
 
     def list_files(self, prefix: str) -> list[str]:
-        s3_client = self.get_s3_client()
-        response = s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
-        return [obj["Key"] for obj in response.get("Contents", [])]
+        try:
+            s3_client = self.get_s3_client()
+            response = s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
+            return [obj["Key"] for obj in response.get("Contents", [])]
+        except botocore.exceptions.EndpointConnectionError as err:
+            raise ConnectionError(f"Failed to connect to endpoint for listing files with prefix {prefix}") from err
 
     def download_file(self, key: str) -> bytes:
         try:
@@ -55,4 +50,4 @@ class S3ObjectStorage(FileObjectStorage):
         except botocore.exceptions.ClientError as err:
             raise FileNotFoundError(f"File not found: {key}") from err
         except botocore.exceptions.EndpointConnectionError as err:
-            raise ConnectionError(f"Failed to connect to endpoint: {self.s3_client.meta.endpoint_url}") from err
+            raise ConnectionError(f"Failed to connect to endpoint to download file with key: {key}") from err
