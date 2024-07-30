@@ -1,0 +1,2 @@
+class InvalidPEFileHandlerException(Exception):
+    pass

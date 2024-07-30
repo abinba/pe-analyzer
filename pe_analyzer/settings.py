@@ -43,6 +43,9 @@ class DatabaseSettings(BaseSettings):
 class AppSettings(BaseSettings):
     debug: bool = False
 
+    spark_url: str
+    spark_local_mode: bool = False
+
     base_dir: DirectoryPath = os.path.dirname(os.path.abspath(__file__))
 
     logging_level: str = "INFO"
@@ -52,6 +55,8 @@ class AppSettings(BaseSettings):
 
     s3_bucket: str = "s3-nord-challenge-data"
     s3_region: str = "eu-central-1"
+
+    batch_size: int = 100
 
     def get_database_uri(self):
         return (

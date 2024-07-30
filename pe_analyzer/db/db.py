@@ -1,10 +1,11 @@
+from abc import ABC, abstractmethod
 import logging
-from typing import TypeAlias
+from typing import TypeAlias, Iterable
 
 from pyspark import Row
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, Table, MetaData
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.dialects.postgresql import insert
 
 from pe_analyzer.db.models import FileMetadata
 
@@ -13,31 +14,60 @@ logger = logging.getLogger(__name__)
 FilePath: TypeAlias = str
 
 
-class Database:
-    def __init__(self, db_url):
-        self.engine = create_engine(db_url)
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+class DatabaseConnector(ABC):
+    @abstractmethod
+    def get_not_processed_files(self, file_paths: list[FilePath]) -> list[str]:
+        raise NotImplementedError
 
-    def get_not_processed_files(self, file_paths: list[FilePath]) -> list:
-        with self.SessionLocal() as session:
+    @abstractmethod
+    def save_metadata(self, metadata_list: Iterable[Row]) -> None:
+        raise NotImplementedError
+
+
+class SQLAlchemyConnector(DatabaseConnector):
+    def __init__(self, db_url: str, batch_size: int):
+        self.db_url = db_url
+        self.batch_size = batch_size
+
+    def get_engine(self):
+        return create_engine(self.db_url)
+
+    def get_not_processed_files(self, file_paths: list[FilePath]) -> list[str]:
+        SessionLocal = sessionmaker(bind=self.get_engine())
+
+        with SessionLocal() as session:
             # Get all the processed files within the list of file_paths
             stmt = select(FileMetadata.path).where(FileMetadata.path.in_(file_paths))
+
             processed_files = session.scalars(stmt).all()
+
             logger.info(f"Found {len(processed_files)} processed files.")
+
         # Exclude the ones that are already processed
         return list(set(file_paths).difference(set(processed_files)))
 
-    def save_metadata(self, metadata_list: list[Row]):
-        with self.SessionLocal() as session:
-            metadata_dicts = []
-            for metadata in metadata_list:
-                metadata_dict = metadata.asDict()
-                if metadata_dict["error"]:
-                    # TODO: output errors somewhere else
-                    logger.warning(f"Error processing {metadata_dict['path']}: {metadata_dict['error']}")
-                del metadata_dict["error"]
-                metadata_dicts.append(metadata_dict)
+    def save_metadata(self, metadata_list: Iterable[Row]):
+        engine = create_engine("postgresql://postgres:postgres@postgres:5432/metadata_db")
 
-            stmt = pg_insert(FileMetadata).values(metadata_dicts)
-            session.execute(stmt)
-            session.commit()
+        file_metadata_table = Table("file_metadata", MetaData(), autoload_with=engine)
+
+        batch = []
+        with engine.connect() as connection:
+            for row in metadata_list:
+                row_dict = row.asDict()
+
+                if row_dict["error"]:
+                    logger.warning(f"Error processing {row_dict['path']}: {row_dict['error']}")
+
+                del row_dict["error"]
+
+                batch.append(row_dict)
+
+                if len(batch) >= self.batch_size:
+                    connection.execute(insert(file_metadata_table).values(batch))
+                    batch = []
+
+            if batch:
+                connection.execute(insert(file_metadata_table).values(batch))
+
+            connection.commit()

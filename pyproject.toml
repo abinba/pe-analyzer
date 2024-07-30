@@ -31,3 +31,8 @@ line-length = 120
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+# strict = ["*"]

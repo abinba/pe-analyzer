@@ -1,6 +1,8 @@
 services:
   spark-master:
-    build: ./spark/
+    build:
+      context: .
+      dockerfile: spark.Dockerfile
     environment:
       - SPARK_MODE=master
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
@@ -11,7 +13,9 @@ services:
       - '8080:8080'
       - '7077:7077'
   spark-worker:
-    build: ./spark/
+    build:
+      context: .
+      dockerfile: spark.Dockerfile
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
@@ -26,6 +30,7 @@ services:
   postgres:
     image: postgres:16
     environment:
+      - SPARK_URL=spark://spark-master:7077
       - POSTGRES_DB=metadata_db
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
