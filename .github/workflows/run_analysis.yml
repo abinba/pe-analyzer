@@ -23,15 +23,14 @@ jobs:
         run: |
           docker-compose up --build -d
 
-      - name: Stream logs of app service
+      - name: Stream logs and wait for app to finish
         run: |
           docker-compose logs -f app &
-
-      - name: Wait for app to finish
-        run: |
+          pid=$!
           while docker-compose ps | grep app | grep -q "Up"; do
             sleep 10
           done
+          kill $pid
 
       - name: Bring down Docker Compose
         run: docker-compose down
