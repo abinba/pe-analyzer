@@ -47,6 +47,7 @@ def process(
 
     analyze_udf = udf(analyze_file_udf, schema)
     df = spark.createDataFrame([(f,) for f in file_paths], ["path"])
+    df.cache()
 
     start = time.time()
 
@@ -57,7 +58,12 @@ def process(
         database.save_metadata(iterator)
 
     df = df.select(analyze_udf(struct("path")).alias("metadata")).select("metadata.*")
-    df.foreachPartition(process_partition)
+    logger.info("Collecting")
+
+    if database.partitions_used:
+        df.foreachPartition(process_partition)
+    else:
+        database.save_metadata(df)
 
     logger.info(f"Processed {df.count()} new files in {time.time() - start:.2f} seconds.")
     logger.info(f"Total processing time: {time.time() - process_start:.2f} seconds.")

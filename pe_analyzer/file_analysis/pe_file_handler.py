@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pefile
 
 from pe_analyzer.file_analysis.base import PEHandler
@@ -12,6 +14,7 @@ class PEFileHandler(PEHandler):
     def __enter__(self):
         if not self.file_content:
             raise PEFileNotSetException("PE file contents not set.")
+        # TODO: consider using fast_load?
         self.pe = pefile.PE(data=self.file_content)
         return self
 
@@ -29,6 +32,24 @@ class PEFileHandler(PEHandler):
             if hasattr(self.pe, "DIRECTORY_ENTRY_IMPORT")
             else 0
         )
+
+    def is_dll(self) -> bool:
+        return self.pe.is_dll()
+
+    def is_exe(self) -> bool:
+        return self.pe.is_exe()
+
+    @property
+    def file_type(self) -> Optional[str]:
+        """
+        Return either dll, exe or None
+        """
+        if self.is_dll():
+            return "dll"
+        elif self.is_exe():
+            return "exe"
+        else:
+            return None
 
     @property
     def exports(self) -> int:

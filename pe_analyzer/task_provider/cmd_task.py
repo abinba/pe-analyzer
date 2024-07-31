@@ -33,6 +33,7 @@ class CommandLineTaskProvider(TaskProvider):
         all_malware_files = self.file_storage_handler.list_files("1/")
 
         # TODO: we could use async here to make it a bit faster
+        # TODO: consider using bloom filter
         clean_files = self.database.get_not_processed_files(all_clean_files)[: self.n // 2]
         malware_files = self.database.get_not_processed_files(all_malware_files)[: self.n // 2]
 

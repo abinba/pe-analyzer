@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, MagicMock
 
 from pe_analyzer.file_analysis.base import PEHandler
 from pe_analyzer.file_storage.base import FileObjectStorage
@@ -25,9 +25,9 @@ def test_analyze_pe_file_success():
     mock_pe_file_handler.architecture = "x64"
     mock_pe_file_handler.imports = 5
     mock_pe_file_handler.exports = 3
+    mock_pe_file_handler.file_type = "exe"
 
-    with patch("pe_analyzer.core.file_analyzer.get_file_type", return_value="exe"):
-        result = analyze_pe_file(path, mock_file_storage_handler, mock_pe_file_handler)
+    result = analyze_pe_file(path, mock_file_storage_handler, mock_pe_file_handler)
 
     expected_result = FileMetadataContainer(
         path=path,
@@ -36,7 +36,6 @@ def test_analyze_pe_file_success():
         arch="x64",
         import_count=5,
         export_count=3,
-        error=None,
     ).to_tuple()
 
     assert result == expected_result
@@ -52,17 +51,15 @@ def test_analyze_pe_file_download_error():
 
     mock_pe_file_handler = MockPEHandler(spec=PEHandler)
 
-    with patch("pe_analyzer.core.file_analyzer.get_file_type", return_value="exe"):
-        result = analyze_pe_file(path, mock_file_storage_handler, mock_pe_file_handler)
+    result = analyze_pe_file(path, mock_file_storage_handler, mock_pe_file_handler)
 
     expected_result = FileMetadataContainer(
         path=path,
         file_size=None,
-        file_type="exe",
+        file_type=None,
         arch=None,
         import_count=None,
         export_count=None,
-        error="Failed to connect",
     ).to_tuple()
 
     assert result == expected_result
@@ -80,17 +77,15 @@ def test_analyze_pe_file_open_error():
     mock_pe_file_handler = MockPEHandler(spec=PEHandler)
     mock_pe_file_handler.__enter__ = MagicMock(side_effect=Exception("Failed to open file"))
 
-    with patch("pe_analyzer.core.file_analyzer.get_file_type", return_value="exe"):
-        result = analyze_pe_file(path, mock_file_storage_handler, mock_pe_file_handler)
+    result = analyze_pe_file(path, mock_file_storage_handler, mock_pe_file_handler)
 
     expected_result = FileMetadataContainer(
         path=path,
         file_size=len(file_content),
-        file_type="exe",
+        file_type=None,
         arch=None,
         import_count=None,
         export_count=None,
-        error="Failed to open file",
     ).to_tuple()
 
     assert result == expected_result

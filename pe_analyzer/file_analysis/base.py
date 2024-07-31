@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 
 class PEHandler(ABC):
@@ -19,6 +20,10 @@ class PEHandler(ABC):
 
     @property
     def exports(self) -> int:
+        raise NotImplementedError
+
+    @property
+    def file_type(self) -> Optional[str]:
         raise NotImplementedError
 
     def __exit__(self, exc_type, exc_val, exc_tb):

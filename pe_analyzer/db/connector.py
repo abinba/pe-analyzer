@@ -3,6 +3,7 @@ import logging
 from typing import Iterable
 
 from pyspark import Row
+from pyspark.sql import SparkSession
 from sqlalchemy import create_engine, select, Table, MetaData
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.dialects.postgresql import insert
@@ -13,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 class DatabaseConnector(ABC):
+    partitions_used: bool = False
+
     @abstractmethod
     def get_not_processed_files(self, file_paths: list[str]) -> list[str]:
         raise NotImplementedError
@@ -23,12 +26,27 @@ class DatabaseConnector(ABC):
 
 
 class SQLAlchemyConnector(DatabaseConnector):
-    def __init__(self, db_url: str, batch_size: int):
+    partitions_used: bool = True
+
+    def __init__(
+        self,
+        db_url: str,
+        batch_size: int,
+        isolation_level: str,
+        auto_flush: bool = False,
+        expire_on_commit: bool = False,
+    ):
         self.db_url = db_url
         self.batch_size = batch_size
+        self.isolation_level = isolation_level
+        self.auto_flush = auto_flush
+        self.expire_on_commit = expire_on_commit
 
     def get_engine(self):
-        return create_engine(self.db_url)
+        return create_engine(
+            self.db_url,
+            isolation_level=self.isolation_level,
+        )
 
     @staticmethod
     def get_table_name():
@@ -40,7 +58,9 @@ class SQLAlchemyConnector(DatabaseConnector):
 
         :param file_paths: List of file paths to check
         """
-        SessionLocal = sessionmaker(bind=self.get_engine())
+        SessionLocal = sessionmaker(
+            bind=self.get_engine(), autoflush=self.auto_flush, expire_on_commit=self.expire_on_commit
+        )
 
         with SessionLocal() as session:
             # Get all the processed files within the list of file_paths
@@ -63,14 +83,40 @@ class SQLAlchemyConnector(DatabaseConnector):
         batch = []
         with engine.connect() as connection:
             for row in metadata_list:
-                row_dict = row.asDict()
-                if row_dict["error"]:
-                    logger.warning(f"Error processing {row_dict['path']}: {row_dict['error']}")
-                del row_dict["error"]
-                batch.append(row_dict)
+                batch.append(row.asDict())
                 if len(batch) >= self.batch_size:
                     connection.execute(insert(file_metadata_table).values(batch))
                     batch = []
             if batch:
                 connection.execute(insert(file_metadata_table).values(batch))
             connection.commit()
+
+
+class JDBCConnector(DatabaseConnector):
+    def __init__(self, db_url: str, db_properties: dict, spark: SparkSession):
+        self.db_url = db_url
+        self.db_properties = db_properties
+        self.spark = spark
+
+    @staticmethod
+    def get_table_name():
+        return "file_metadata"
+
+    def get_processed_files(self):
+        return self.spark.read.jdbc(self.db_url, self.get_table_name(), properties=self.db_properties).select("path")
+
+    def get_not_processed_files(self, file_paths: list[str]):
+        # TODO: is there a better way?
+        processed_files_df = self.get_processed_files()
+        file_paths_df = self.spark.createDataFrame(file_paths, "string").toDF("path")
+        not_processed_files_df = file_paths_df.join(processed_files_df, on="path", how="left_anti")
+        not_processed_files_list = not_processed_files_df.select("path").rdd.flatMap(lambda x: x).collect()
+        return not_processed_files_list
+
+    def save_metadata(self, metadata_df):
+        metadata_df.write.jdbc(
+            url=self.db_url,
+            table=self.get_table_name(),
+            mode="append",
+            properties=self.db_properties,
+        )

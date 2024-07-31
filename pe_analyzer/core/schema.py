@@ -8,11 +8,10 @@ from pyspark.sql.types import StructType, StructField, StringType, LongType, Int
 class FileMetadataContainer:
     path: str
     file_size: Optional[int]
-    file_type: str
+    file_type: Optional[str]
     arch: Optional[str]
     import_count: Optional[int]
     export_count: Optional[int]
-    error: Optional[str]
 
     def to_tuple(self):
         return (
@@ -22,7 +21,6 @@ class FileMetadataContainer:
             self.arch,
             self.import_count,
             self.export_count,
-            self.error,
         )
 
     @classmethod
@@ -31,10 +29,9 @@ class FileMetadataContainer:
             [
                 StructField("path", StringType(), nullable=False),
                 StructField("size", LongType(), nullable=False),
-                StructField("file_type", StringType(), nullable=False),
+                StructField("file_type", StringType(), nullable=True),
                 StructField("architecture", StringType(), nullable=True),
                 StructField("num_imports", IntegerType(), nullable=True),
                 StructField("num_exports", IntegerType(), nullable=True),
-                StructField("error", StringType(), nullable=True),
             ]
         )

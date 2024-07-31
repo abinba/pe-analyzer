@@ -26,7 +26,13 @@ def main():
     if settings.spark_local_mode:
         spark = SparkSession.builder.appName("PE File Analyzer").master("local[*]").getOrCreate()
     else:
-        spark = SparkSession.builder.appName("PE File Analyzer").master(settings.spark_url).getOrCreate()
+        spark = (
+            SparkSession.builder.appName("PE File Analyzer")
+            .config("spark.default.parallelism", "32")
+            # .config("spark.jars", "./postgresql-42.7.3.jar")
+            .master(settings.spark_url)
+            .getOrCreate()
+        )
 
     spark.sparkContext.addPyFile("pe_analyzer.zip")
 
@@ -38,7 +44,16 @@ def main():
     database: DatabaseConnector = SQLAlchemyConnector(
         db_url=settings.get_database_uri(),
         batch_size=settings.batch_size,
+        isolation_level=settings.database.isolation_level,
+        expire_on_commit=settings.database.expire_on_commit,
+        auto_flush=settings.database.auto_flush,
     )
+
+    # database = JDBCConnector(
+    #     db_url=settings.database.get_pyspark_db_url(),
+    #     spark=spark,
+    #     db_properties=settings.database.get_pyspark_properties(),
+    # )
 
     command_line_task_provider = CommandLineTaskProvider(
         n=n,

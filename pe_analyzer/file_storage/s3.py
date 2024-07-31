@@ -1,5 +1,6 @@
 import boto3
 import botocore.exceptions
+from botocore.config import Config
 
 from pe_analyzer.file_storage.base import FileObjectStorage
 
@@ -21,11 +22,14 @@ class S3ObjectStorage(FileObjectStorage):
 
     # TODO: find a better way to manage boto3 client, now it's required for pickling to work correctly
     def get_s3_client(self):
+        config = Config(connect_timeout=5, retries={"max_attempts": 0})
+
         s3_client = boto3.client(
             "s3",
             region_name=self.region_name,
             aws_access_key_id=self.aws_access_key_id,
             aws_secret_access_key=self.aws_secret_access_key,
+            config=config,
         )
 
         if self.public_bucket:
@@ -49,5 +53,5 @@ class S3ObjectStorage(FileObjectStorage):
             return obj["Body"].read()
         except botocore.exceptions.ClientError as err:
             raise FileNotFoundError(f"File not found: {key}") from err
-        except botocore.exceptions.EndpointConnectionError as err:
+        except (botocore.exceptions.EndpointConnectionError, botocore.exceptions.ReadTimeoutError) as err:
             raise ConnectionError(f"Failed to connect to endpoint to download file with key: {key}") from err

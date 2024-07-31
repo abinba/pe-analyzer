@@ -13,9 +13,10 @@ class FileMetadata(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     path: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
     size: Mapped[int] = mapped_column(Integer, nullable=False)
-    file_type: Mapped[str] = mapped_column(String, nullable=True)
+    # TODO: use enum for dll, exe
+    file_type: Mapped[str] = mapped_column(String(4), nullable=True)
     # TODO: use enum for x32, x64
-    architecture: Mapped[str] = mapped_column(String, nullable=True)
+    architecture: Mapped[str] = mapped_column(String(4), nullable=True)
     num_imports: Mapped[int] = mapped_column(Integer, nullable=True)
     num_exports: Mapped[int] = mapped_column(Integer, nullable=True)
 

@@ -26,11 +26,9 @@ jobs:
       - name: Stream logs and wait for app to finish
         run: |
           docker-compose logs -f app &
-          pid=$!
           while docker-compose ps | grep app | grep -q "Up"; do
             sleep 10
           done
-          kill $pid
 
       - name: Bring down Docker Compose
         run: docker-compose down

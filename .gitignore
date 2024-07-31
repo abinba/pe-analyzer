@@ -164,3 +164,4 @@ venv
 *.env
 .env
 pe_analyzer.zip
+postgresql-42.7.3.jar
